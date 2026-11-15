@@ -1,0 +1,13 @@
+road_safety:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: DBT_SVC
+      private_key_path: /usr/local/airflow/include/keys/dbt.p8
+      role: TRANSFORMER
+      warehouse: TRANSFORM_WH
+      database: ANALYTICS
+      schema: dev
+      threads: 4
