@@ -1,0 +1,54 @@
+version: 2
+
+models:
+  - name: stg_stats19__collisions
+    description: One row per reported road collision, typed and cleaned. Codes are kept as integers; labels are joined in the intermediate layer.
+    columns:
+      - name: collision_id
+        description: DfT collision index, unique across years.
+        data_tests: [unique, not_null]
+      - name: collision_date
+        data_tests: [not_null]
+      - name: collision_severity_code
+        description: 1 = fatal, 2 = serious, 3 = slight.
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3]
+              quote: false
+      - name: speed_limit_mph
+        data_tests:
+          - dbt_utils.accepted_range:
+              min_value: 10
+              max_value: 70
+              config:
+                severity: warn
+
+  - name: stg_stats19__casualties
+    description: One row per casualty.
+    columns:
+      - name: casualty_id
+        data_tests: [unique, not_null]
+      - name: collision_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_stats19__collisions')
+              field: collision_id
+      - name: casualty_severity_code
+        data_tests:
+          - accepted_values:
+              values: [1, 2, 3]
+              quote: false
+
+  - name: stg_stats19__vehicles
+    description: One row per vehicle involved in a collision.
+    columns:
+      - name: vehicle_id
+        data_tests: [unique, not_null]
+      - name: collision_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_stats19__collisions')
+              field: collision_id

@@ -1,0 +1,21 @@
+version: 2
+
+sources:
+  - name: stats19
+    description: DfT STATS19 road collision data, loaded yearly by the Airflow ingest_stats19 DAG. All columns arrive as VARCHAR.
+    database: RAW
+    schema: STATS19
+    loaded_at_field: _loaded_at
+    freshness:
+      warn_after: {count: 400, period: day}
+      error_after: {count: 800, period: day}
+    tables:
+      - name: collisions
+        identifier: COLLISIONS
+        description: One row per reported road collision.
+      - name: casualties
+        identifier: CASUALTIES
+        description: One row per casualty in a collision.
+      - name: vehicles
+        identifier: VEHICLES
+        description: One row per vehicle involved in a collision.

@@ -1,0 +1,8 @@
+version: 2
+
+models:
+  - name: stg_reference__code_lookup
+    description: STATS19 code-to-label lookup, one row per field and code.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [field_name, code]

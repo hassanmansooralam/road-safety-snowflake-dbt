@@ -74,7 +74,7 @@ def ensure_table(hook: SnowflakeHook, table: str, columns: list[str]) -> None:
 
 @dag(
     schedule="@yearly",
-    start_date=pendulum.datetime(2015, 1, 1, tz="UTC"),
+    start_date=pendulum.datetime(2021, 1, 1, tz="UTC"),
     catchup=True,
     max_active_runs=1,
     params={"year": Param(None, type=["null", "integer"])},

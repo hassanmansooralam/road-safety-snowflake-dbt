@@ -1,0 +1,50 @@
+version: 2
+
+models:
+  - name: dim_date
+    description: Calendar dimension, one row per day, 2021-2025.
+    columns:
+      - name: date_day
+        data_tests: [unique, not_null]
+
+  - name: dim_police_force
+    description: Police forces in Great Britain, from the DfT code list.
+    columns:
+      - name: police_force_code
+        data_tests: [unique, not_null]
+
+  - name: fct_collisions
+    description: One row per reported road collision in Great Britain, 2021-2025.
+    columns:
+      - name: collision_id
+        data_tests: [unique, not_null]
+      - name: collision_date
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_date')
+              field: date_day
+      - name: police_force_code
+        data_tests:
+          - relationships:
+              to: ref('dim_police_force')
+              field: police_force_code
+      - name: is_ksi
+        description: True when the collision was fatal or serious.
+
+  - name: fct_casualties
+    description: One row per casualty, incremental on load time and merged on casualty_id.
+    columns:
+      - name: casualty_id
+        data_tests: [unique, not_null]
+      - name: collision_id
+        data_tests:
+          - relationships:
+              to: ref('fct_collisions')
+              field: collision_id
+      - name: adjusted_ksi
+        description: DfT-style adjusted KSI estimate (1 for fatal, else probability of serious injury).
+        data_tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1

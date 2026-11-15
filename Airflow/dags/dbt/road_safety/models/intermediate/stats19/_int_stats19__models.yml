@@ -1,0 +1,32 @@
+version: 2
+
+# Label checks warn rather than fail: a null label usually means a field name
+# in the seed differs from the one used in the join_label() call.
+models:
+  - name: int_stats19__collisions_labelled
+    description: Collisions with code labels joined from the DfT data guide.
+    columns:
+      - name: collision_id
+        data_tests: [unique, not_null]
+      - name: collision_severity
+        data_tests: [{not_null: {config: {severity: warn}}}]
+      - name: police_force
+        data_tests: [{not_null: {config: {severity: warn}}}]
+      - name: weather_conditions
+        data_tests: [{not_null: {config: {severity: warn}}}]
+
+  - name: int_stats19__casualties_labelled
+    description: Casualties with code labels.
+    columns:
+      - name: casualty_id
+        data_tests: [unique, not_null]
+      - name: casualty_severity
+        data_tests: [{not_null: {config: {severity: warn}}}]
+
+  - name: int_stats19__vehicles_labelled
+    description: Vehicles with code labels.
+    columns:
+      - name: vehicle_id
+        data_tests: [unique, not_null]
+      - name: vehicle_type
+        data_tests: [{not_null: {config: {severity: warn}}}]
