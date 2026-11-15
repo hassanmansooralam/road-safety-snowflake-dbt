@@ -1,0 +1,25 @@
+# secrets
+keys/
+*.p8
+*.pem
+.env
+Airflow/include/keys/
+
+# data
+Data/
+
+# terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+
+# dbt
+target/
+dbt_packages/
+logs/
+
+# python
+__pycache__/
+.venv/
