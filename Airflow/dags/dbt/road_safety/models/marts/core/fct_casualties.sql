@@ -45,6 +45,8 @@ from {{ ref('int_stats19__casualties_labelled') }} as cas
 inner join {{ ref('int_stats19__collisions_labelled') }} as col
     on col.collision_id = cas.collision_id
 
+
+
 {% if is_incremental() %}
 -- Only rows loaded since the last build. A re-loaded year gets a new _loaded_at,
 -- so it is picked up and merged on casualty_id.
