@@ -30,19 +30,25 @@ The pipeline answers one question: **where and when are people killed or serious
 
 ```mermaid
 flowchart LR
-    A[DfT STATS19<br/>yearly CSVs] -->|download, PUT,<br/>COPY INTO| B
-    subgraph Airflow [Airflow in Docker - Astro CLI]
-        I[ingest_stats19<br/>@yearly, backfill]
-        T[transform_dbt<br/>Cosmos: task per model]
+    A["DfT STATS19<br/>yearly CSVs"]
+    subgraph AF["Airflow in Docker (Astro CLI)"]
+        I["ingest_stats19<br/>yearly, backfillable"]
+        T["transform_dbt<br/>Cosmos: task per model"]
     end
-    A --> I
-    I --> B[(Snowflake<br/>RAW.STATS19)]
-    I -.->|updates asset raw_stats19| T
-    T -->|dbt build| C[(Snowflake<br/>ANALYTICS<br/>staging → marts)]
-    C --> D[Snowsight dashboard]
+    B[("Snowflake<br/>RAW.STATS19")]
+    C[("Snowflake<br/>ANALYTICS<br/>staging to marts")]
+    D["Snowsight dashboard"]
+    G["GitHub PR"]
+    H["GitHub Actions CI<br/>terraform validate<br/>dbt build in CI.PR_n"]
+    TF["Terraform"]
 
-    G[GitHub PR] --> H[GitHub Actions CI<br/>terraform validate<br/>dbt build in CI.PR_n]
-    TF[Terraform] -->|warehouses, DBs,<br/>roles, users| B
+    A -->|"download, PUT, COPY INTO"| I
+    I --> B
+    I -.->|"updates asset raw_stats19"| T
+    T -->|"dbt build"| C
+    C --> D
+    G --> H
+    TF -->|"warehouses, DBs, roles, users"| B
 ```
 
 **Data flow:** `ingest_stats19` downloads one year of collision, casualty and vehicle files, uploads them to a Snowflake stage and loads them into `RAW.STATS19`. When the load finishes, it updates the Airflow asset `raw_stats19`, which triggers `transform_dbt`. That DAG runs the dbt project model by model and rebuilds the marts.
