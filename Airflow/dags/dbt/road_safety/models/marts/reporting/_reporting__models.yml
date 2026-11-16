@@ -8,7 +8,7 @@ models:
           combination_of_columns: [year, police_force_code]
 
   - name: mart_collisions_by_hour
-    description: Collisons by the hour of the day, recorded and adjusted.
-    data_tests:
-      - dbt_utils.unique_combination_of_columns:
-          combination_of_columns: [collisons, collision_date]       
+    description: Average collisions per day for each hour of the day, weekdays vs weekends, 2021-2025.
+    columns:
+      - name: hour_of_day
+        data_tests: [unique, not_null]
