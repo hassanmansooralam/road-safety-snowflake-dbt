@@ -53,7 +53,7 @@ jobs:
         working-directory: Airflow/dags/dbt/road_safety
     env:
       SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-      DBT_PRIVATE_KEY_PATH: ${{ runner.temp }}/ci.p8
+      DBT_PRIVATE_KEY_PATH: /tmp/snowflake_ci.p8
       # Each PR builds into its own schemas (PR_12_STAGING, PR_12_MARTS...); main builds into MAIN_*
       DBT_CI_SCHEMA: ${{ github.event_name == 'pull_request' && format('PR_{0}', github.event.pull_request.number) || 'MAIN' }}
     steps:
@@ -97,7 +97,7 @@ jobs:
         working-directory: Airflow/dags/dbt/road_safety
     env:
       SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-      DBT_PRIVATE_KEY_PATH: ${{ runner.temp }}/ci.p8
+      DBT_PRIVATE_KEY_PATH: /tmp/snowflake_ci.p8
       DBT_CI_SCHEMA: PR_${{ github.event.pull_request.number }}
     steps:
       - uses: actions/checkout@v4
