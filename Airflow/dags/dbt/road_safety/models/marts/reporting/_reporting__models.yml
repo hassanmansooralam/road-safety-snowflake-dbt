@@ -6,3 +6,9 @@ models:
     data_tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns: [year, police_force_code]
+
+  - name: mart_collisions_by_hour
+    description: Collisons by the hour of the day, recorded and adjusted.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [collisons, collision_date]       
