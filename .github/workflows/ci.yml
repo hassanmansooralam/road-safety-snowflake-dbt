@@ -88,6 +88,7 @@ jobs:
             Airflow/dags/dbt/road_safety/target/run_results.json
           if-no-files-found: ignore
 
+
   cleanup:
     name: cleanup PR schemas
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
