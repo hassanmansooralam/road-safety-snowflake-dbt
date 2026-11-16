@@ -1,0 +1,121 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, closed]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  terraform:
+    name: terraform
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Format check
+        run: terraform fmt -check -recursive
+
+      # keys/ is gitignored, so create throwaway keys for file() calls to read.
+      # validate needs no Snowflake connection and creates nothing.
+      - name: Dummy keys for validate
+        run: |
+          mkdir -p ../keys
+          for name in terraform airflow dbt ci; do
+            openssl genrsa 2048 2>/dev/null | openssl pkcs8 -topk8 -nocrypt -out ../keys/${name}.p8
+            openssl rsa -in ../keys/${name}.p8 -pubout -out ../keys/${name}.pub 2>/dev/null
+          done
+
+      - name: Init (no backend)
+        run: terraform init -backend=false
+
+      - name: Validate
+        run: terraform validate
+
+  dbt:
+    name: dbt
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Airflow/dags/dbt/road_safety
+    env:
+      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      DBT_PRIVATE_KEY_PATH: ${{ runner.temp }}/ci.p8
+      # Each PR builds into its own schemas (PR_12_STAGING, PR_12_MARTS...); main builds into MAIN_*
+      DBT_CI_SCHEMA: ${{ github.event_name == 'pull_request' && format('PR_{0}', github.event.pull_request.number) || 'MAIN' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dbt
+        run: pip install "dbt-core>=1.12,<1.13" "dbt-snowflake>=1.12,<1.13"
+
+      - name: Write Snowflake key
+        run: |
+          printf '%s\n' "${{ secrets.SNOWFLAKE_CI_PRIVATE_KEY }}" > "$DBT_PRIVATE_KEY_PATH"
+          chmod 600 "$DBT_PRIVATE_KEY_PATH"
+
+      - name: dbt deps
+        run: dbt deps --profiles-dir ci_profiles
+
+      - name: dbt build (seeds, models, tests)
+        run: dbt build --profiles-dir ci_profiles --target ci
+
+      - name: Upload dbt artefacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-target-${{ env.DBT_CI_SCHEMA }}
+          path: |
+            Airflow/dags/dbt/road_safety/target/manifest.json
+            Airflow/dags/dbt/road_safety/target/run_results.json
+          if-no-files-found: ignore
+
+  cleanup:
+    name: cleanup PR schemas
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Airflow/dags/dbt/road_safety
+    env:
+      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      DBT_PRIVATE_KEY_PATH: ${{ runner.temp }}/ci.p8
+      DBT_CI_SCHEMA: PR_${{ github.event.pull_request.number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dbt
+        run: pip install "dbt-core>=1.12,<1.13" "dbt-snowflake>=1.12,<1.13"
+
+      - name: Write Snowflake key
+        run: |
+          printf '%s\n' "${{ secrets.SNOWFLAKE_CI_PRIVATE_KEY }}" > "$DBT_PRIVATE_KEY_PATH"
+          chmod 600 "$DBT_PRIVATE_KEY_PATH"
+
+      - name: Drop this PR's schemas
+        run: |
+          dbt deps --profiles-dir ci_profiles
+          dbt run-operation drop_pr_schemas --profiles-dir ci_profiles --target ci --args "{prefix: 'PR_${{ github.event.pull_request.number }}_'}"
